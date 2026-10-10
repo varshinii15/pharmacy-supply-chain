@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard, Package, ArrowLeftRight, Users,
+  LayoutDashboard, Package, ArrowLeftRight, Users, UserRound,
   Settings, ChevronLeft, ChevronRight, Shield,
-  QrCode, BarChart3
+  QrCode
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,11 @@ const navItems = [
     href: "/dashboard",
     icon: LayoutDashboard,
     exact: true,
+  },
+  {
+    label: "Account",
+    href: "/dashboard/account",
+    icon: UserRound,
   },
   {
     label: "Batches",
@@ -35,10 +40,9 @@ const navItems = [
     icon: QrCode,
   },
   {
-    label: "Analytics",
-    href: "/dashboard/analytics",
-    icon: BarChart3,
-    adminOnly: false,
+    label: "Settings",
+    href: "/dashboard/settings",
+    icon: Settings,
   },
 ];
 
@@ -47,11 +51,6 @@ const adminItems = [
     label: "Participants",
     href: "/dashboard/participants",
     icon: Users,
-  },
-  {
-    label: "Settings",
-    href: "/dashboard/settings",
-    icon: Settings,
   },
 ];
 
@@ -82,7 +81,7 @@ export function Sidebar() {
       </button>
 
       <div className="flex flex-col gap-1 p-3 flex-1">
-        {/* Main nav */}
+        {/* Shared account navigation */}
         <div className="space-y-0.5">
           {navItems.map((item) => {
             const active = isActive(item);

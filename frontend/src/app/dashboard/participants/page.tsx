@@ -12,6 +12,7 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { formatDate, roleName } from "@/lib/utils";
 import { toast } from "sonner";
+import Link from "next/link";
 
 const roleIcons: Record<string, React.ReactNode> = {
   "1": <Factory size={14} className="text-emerald-500" />,
@@ -134,6 +135,9 @@ export default function ParticipantsPage() {
           <button onClick={load} className="btn btn-secondary p-2.5" aria-label="Refresh">
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
           </button>
+          <Link href="/accounts/new" className="btn btn-secondary text-sm">
+            Manage account types
+          </Link>
           <button onClick={() => setShowAddForm(true)} className="btn btn-primary text-sm">
             <Plus size={16} />
             Add Participant

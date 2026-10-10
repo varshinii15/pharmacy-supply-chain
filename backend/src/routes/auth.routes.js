@@ -14,8 +14,10 @@ const loginLimiter = rateLimit({
   message: { success: false, error: { code: "TooManyRequests", message: "Too many login attempts. Try again later." } },
 });
 
+router.post("/register", validate(v.register), c.register);
 router.post("/login", loginLimiter, validate(v.login), c.login);
 router.get("/me", authenticate, c.me);
+router.patch("/profile", authenticate, validate(v.updateProfile), c.updateProfile);
 router.post("/change-password", authenticate, validate(v.changePassword), c.changePassword);
 
 module.exports = router;

@@ -28,8 +28,10 @@ export function Navbar({ onMenuToggle }: { onMenuToggle?: () => void }) {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 glass border-b transition-all duration-300",
-        scrolled ? "border-[var(--bg-border)]" : "border-transparent"
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-500 border-b",
+        scrolled
+          ? "bg-[var(--bg-card)]/90 backdrop-blur-xl border-[var(--bg-border)] shadow-md"
+          : "bg-[var(--bg-card)]/85 backdrop-blur-xl border-[var(--bg-border)]/70 shadow-sm"
       )}
       style={{ height: "64px" }}
     >
@@ -39,9 +41,6 @@ export function Navbar({ onMenuToggle }: { onMenuToggle?: () => void }) {
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--brand-from)] to-[var(--brand-to)] flex items-center justify-center shadow-lg">
             <Shield size={16} className="text-white" strokeWidth={2.5} />
           </div>
-          <span className="font-display font-bold text-[var(--text-primary)] text-base hidden sm:block">
-            PharmaChain
-          </span>
         </Link>
 
         {/* Spacer */}

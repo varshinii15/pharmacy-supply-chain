@@ -111,7 +111,7 @@ export default function VerifyResultPage({
   const cfg = statusConfig[status];
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] flex flex-col">
+    <div className="site-grid-surface min-h-screen flex flex-col">
       <Navbar />
 
       <div className="flex-1 max-w-2xl mx-auto w-full px-4 pt-24 pb-12">

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { authApi, User } from "@/lib/api";
+import { authApi, RegisterPayload, User } from "@/lib/api";
 import Cookies from "js-cookie";
 
 interface AuthContextValue {
@@ -9,6 +9,7 @@ interface AuthContextValue {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -18,6 +19,7 @@ const AuthContext = createContext<AuthContextValue>({
   token: null,
   loading: true,
   login: async () => {},
+  register: async () => {},
   logout: () => {},
   refreshUser: async () => {},
 });
@@ -72,6 +74,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(formatUser(u));
   };
 
+  const register = async (payload: RegisterPayload) => {
+    const res = await authApi.register(payload);
+    if (!res.data.success || !res.data.data) {
+      throw new Error(res.data.error?.message || "Registration failed");
+    }
+    const { token: t, user: u } = res.data.data;
+    Cookies.set("token", t, { expires: 7, sameSite: "Lax" });
+    setToken(t);
+    setUser(formatUser(u));
+  };
+
   const logout = () => {
     Cookies.remove("token");
     setToken(null);
@@ -80,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, refreshUser: fetchMe }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser: fetchMe }}>
       {children}
     </AuthContext.Provider>
   );

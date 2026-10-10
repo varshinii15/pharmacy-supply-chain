@@ -33,7 +33,7 @@ export default function ScanPage() {
   }, [scannedBatchId, router]);
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="site-grid-surface site-grid-dark min-h-screen bg-black text-white flex flex-col">
       {/* Custom transparent navbar for scanner */}
       <header className="absolute top-0 left-0 right-0 z-50 p-4">
         <div className="max-w-screen-md mx-auto flex items-center justify-between">

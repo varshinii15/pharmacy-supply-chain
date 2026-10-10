@@ -46,6 +46,8 @@ const authenticate = asyncHandler(async (req, _res, next) => {
           role: user.participant.role,
           walletAddress: user.participant.walletAddress,
           active: user.participant.active,
+          location: user.participant.location,
+          contactPhone: user.participant.contactPhone,
         }
       : null,
   };

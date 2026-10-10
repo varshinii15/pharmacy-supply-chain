@@ -9,6 +9,8 @@ const Participant = require("../models/Participant");
 const Transfer = require("../models/Transfer");
 const TransactionLog = require("../models/TransactionLog");
 const VerificationLog = require("../models/VerificationLog");
+const User = require("../models/User");
+const ApiError = require("../utils/ApiError");
 
 const countBy = async (model, field, filter = {}) => {
   const rows = await model.aggregate([{ $match: filter }, { $group: { _id: `$${field}`, count: { $sum: 1 } } }]);
@@ -126,4 +128,15 @@ const sync = asyncHandler(async (_req, res) => {
   res.json({ success: true, data: await getSyncStatus() });
 });
 
-module.exports = { stats, batches, transfers, transactions, verifications, sync };
+// POST /api/admin/admins — provision an administrator account (admins only)
+const createAdmin = asyncHandler(async (req, res) => {
+  const { name, email, password } = req.body;
+  if (await User.exists({ email })) {
+    throw ApiError.conflict("This email is already used by another account.", "EmailTaken");
+  }
+
+  const user = await User.create({ name, email, password, role: "admin" });
+  res.status(201).json({ success: true, data: { user: user.toJSON() } });
+});
+
+module.exports = { stats, batches, transfers, transactions, verifications, sync, createAdmin };

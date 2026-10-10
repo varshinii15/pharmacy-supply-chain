@@ -1,266 +1,489 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
-import {
-  ArrowRight, ShieldCheck, QrCode, Globe,
-  Zap, Lock, BarChart3, ChevronRight, GitBranch
-} from "lucide-react";
-import { SupplyChainAnimation } from "@/components/landing/SupplyChainAnimation";
-import { StatsStrip } from "@/components/ui/CountUp";
-import { Navbar } from "@/components/layout/Navbar";
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, MotionConfig, motion, useInView, type Variants } from "framer-motion";
+import { QrCode, ShieldCheck, Globe, Zap, Lock, BarChart3, Menu, X, GitBranch } from "lucide-react";
 
-const stats = [
-  { label: "Batches Tracked", value: 12400, suffix: "+" },
-  { label: "Verified Medicines", value: 980000, suffix: "+" },
-  { label: "Supply Chain Partners", value: 340, suffix: "+" },
+/* ─── IOH-style Stat Block ──────────────────────────────── */
+function StatBlock({
+  target,
+  label,
+  delay = 0,
+}: {
+  target: string;
+  label: string;
+  delay?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true });
+  const [value, setValue] = useState(0);
+  const [barWidth, setBarWidth] = useState(0);
+  const numericTarget = parseFloat(target.replace(/[^0-9.]/g, ""));
+  const suffix = target.replace(/[0-9.,]/g, "");
+
+  useEffect(() => {
+    if (!inView) return;
+    const timeout = setTimeout(() => {
+      const start = performance.now();
+      const duration = 2000;
+      const step = (now: number) => {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        setValue(Math.floor(eased * numericTarget));
+        setBarWidth(eased * 100);
+        if (progress < 1) requestAnimationFrame(step);
+        else {
+          setValue(numericTarget);
+          setBarWidth(100);
+        }
+      };
+      requestAnimationFrame(step);
+    }, delay);
+    return () => clearTimeout(timeout);
+  }, [inView, numericTarget, delay]);
+
+  return (
+    <div ref={ref} className="ioh-stat-block">
+      <div className="ioh-stat-bar-track">
+        <div className="ioh-stat-bar-fill" style={{ width: `${barWidth}%` }} />
+      </div>
+      <div className="ioh-stat-label">{label}</div>
+      <div className="ioh-stat-number">
+        {value >= 1000 ? value.toLocaleString() : value}
+        {suffix}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Horizontal Scroll Gallery ──────────────────────────── */
+const modules = [
+  { title: "Registered on Blockchain", desc: "Every medicine batch gets a unique on-chain identity the moment it leaves the manufacturer — immutable and tamper-proof.", icon: "🔗", color: "#1a1a2e", image: "/pharma_lab.jpg", imageAlt: "Medicine vials moving along an automated pharmaceutical production line" },
+  { title: "Scan & Verify", desc: "Patients scan a QR code or enter a batch ID. The result is instant and pulled directly from the blockchain.", icon: "📱", color: "#16213e", image: "/scan_verify.jpg", imageAlt: "A smartphone displaying a QR code ready to scan" },
+  { title: "Full Transfer History", desc: "See exactly where a batch has been: from factory floor to pharmacy shelf, every custody change is recorded.", icon: "🌐", color: "#0f3460", image: "/cold_chain.jpg", imageAlt: "Temperature-controlled pharmaceutical shipment moving through a logistics facility" },
+  { title: "Counterfeit Detection", desc: "If a batch's history looks wrong, was modified, or never existed on-chain, the system flags it immediately.", icon: "🔒", color: "#1a1a2e", image: "/counterfeit_detection.jpg", imageAlt: "Distinct blister packs of medicine being checked for authenticity" },
+  { title: "Real-time Analytics", desc: "Supply chain partners get live dashboards showing batch status, transfer activity and expiry warnings.", icon: "📊", color: "#16213e", image: "/supply_analytics.jpg", imageAlt: "Live analytics dashboard with charts and supply activity metrics" },
+  { title: "Instant Results", desc: "Verification completes in seconds — no logins, no apps, no friction. Just answers.", icon: "⚡", color: "#0f3460", image: "/instant_verification.jpg", imageAlt: "Healthcare professional checking information on a smartphone" },
 ];
 
-const howItWorks = [
+const revealVariants: Variants = {
+  hidden: { opacity: 0, y: 32 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.75, ease: "easeOut" as const },
+  },
+};
+
+function ScrollGallery() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+  const galleryRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setStartX(e.pageX - (galleryRef.current?.offsetLeft ?? 0));
+    setScrollLeft(galleryRef.current?.scrollLeft ?? 0);
+  };
+  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !galleryRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - galleryRef.current.offsetLeft;
+    galleryRef.current.scrollLeft = scrollLeft - (x - startX);
+  };
+  const handleGalleryScroll = () => {
+    const gallery = galleryRef.current;
+    if (!gallery) return;
+    const center = gallery.getBoundingClientRect().left + gallery.clientWidth / 2;
+    const nearestIndex = Array.from(gallery.children).reduce((nearest, child, index, children) => {
+      const distance = Math.abs(child.getBoundingClientRect().left + child.clientWidth / 2 - center);
+      const nearestChild = children[nearest];
+      const nearestDistance = Math.abs(nearestChild.getBoundingClientRect().left + nearestChild.clientWidth / 2 - center);
+      return distance < nearestDistance ? index : nearest;
+    }, 0);
+    setActiveIndex(nearestIndex);
+  };
+
+  return (
+    <motion.div
+      ref={galleryRef}
+      className={`ioh-scroll-gallery${isDragging ? " is-grabbing" : ""}`}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onMouseMove={handleMouseMove}
+      onScroll={handleGalleryScroll}
+      initial={{ opacity: 0, y: 28 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.12 }}
+      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {modules.map((item, i) => (
+        <motion.div
+          key={item.title}
+          className={`ioh-slide-item${i === activeIndex ? " is-active" : ""}`}
+          onMouseEnter={() => setActiveIndex(i)}
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: i === activeIndex ? 1 : 0.58, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.65, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div className={`ioh-slide-image${item.image ? " has-photo" : ""}`} style={{ background: item.color }}>
+            {item.image && (
+              <Image
+                src={item.image}
+                alt={item.imageAlt}
+                fill
+                sizes="(max-width: 768px) 78vw, 30vw"
+                className="ioh-module-photo"
+              />
+            )}
+            <div className="ioh-slide-emoji">{item.icon}</div>
+            <div className="ioh-slide-title-overlay">{item.title}</div>
+          </div>
+          <div className="ioh-module-box">
+            <div className="ioh-module-label">Module Overview</div>
+            <div className="ioh-module-desc">{item.desc}</div>
+            <div className="ioh-explore-link">
+              <Link href="/verify" className="ioh-course-link">Explore →</Link>
+            </div>
+          </div>
+        </motion.div>
+      ))}
+    </motion.div>
+  );
+}
+
+/* ─── Features Slider ─────────────────────────────────────── */
+const features = [
   {
-    icon: <ShieldCheck size={24} className="text-emerald-500" />,
-    title: "Registered on Blockchain",
-    desc: "Every medicine batch gets a unique on-chain identity the moment it leaves the manufacturer — immutable and tamper-proof.",
-    span: "col-span-2",
+    tab: "Clinical Mentorship",
+    title: "Live high-frequency verification with unmatched security and depth",
+    body: "A constantly growing blockchain record of every medicine batch. From registration to dispensing, PharmaChain offers complete traceability across the entire supply chain.",
+    image: "/pharma_lab.jpg",
+    imageAlt: "Pharmaceutical production line preparing medicine vials for verification",
   },
   {
-    icon: <QrCode size={24} className="text-violet-500" />,
-    title: "Scan & Verify",
-    desc: "Patients scan a QR code or enter a batch ID. The result is instant and pulled directly from the blockchain.",
-    span: "col-span-1",
+    tab: "Partner Support",
+    title: "Practitioner-led network for real-time answers and dedicated support",
+    body: "Receive direct feedback on complex supply chain cases and compliance guidance from leading practitioners, with a dedicated team providing real-time answers 24/7.",
+    image: "/cold_chain.jpg",
+    imageAlt: "Cold-chain medicine shipment monitored at a logistics facility",
   },
   {
-    icon: <Globe size={24} className="text-sky-500" />,
-    title: "Full Transfer History",
-    desc: "See exactly where a batch has been: from factory floor to pharmacy shelf, every custody change is recorded.",
-    span: "col-span-1",
+    tab: "Global Impact",
+    title: "Multi-country rollout with scalable compliance infrastructure",
+    body: "We help supply chain partners go global, building a fully compliant, patient-centric medicine tracking system using real-time data and automated delivery.",
+    image: "/cold_chain.jpg",
+    imageAlt: "Temperature-controlled pharmaceutical shipment in a distribution facility",
   },
   {
-    icon: <Lock size={24} className="text-rose-500" />,
-    title: "Counterfeit Detection",
-    desc: "If a batch's history looks wrong, was modified, or never existed on-chain, the system flags it immediately.",
-    span: "col-span-1",
-  },
-  {
-    icon: <BarChart3 size={24} className="text-amber-500" />,
-    title: "Real-time Analytics",
-    desc: "Supply chain partners get live dashboards showing batch status, transfer activity and expiry warnings.",
-    span: "col-span-1",
-  },
-  {
-    icon: <Zap size={24} className="text-teal-500" />,
-    title: "Instant Results",
-    desc: "Verification completes in seconds — no logins, no apps, no friction. Just answers.",
-    span: "col-span-1",
+    tab: "Evidence-Based",
+    title: "Fortified by thousands of verified supply chain records",
+    body: "We do the verification that patients can't do themselves, so they can trust every medicine they receive. Gain the clarity, confidence, and certainty to protect lives.",
+    image: "/pharma_lab.jpg",
+    imageAlt: "Medicine vials being produced in a pharmaceutical laboratory",
   },
 ];
 
+function FeaturesSection() {
+  const [active, setActive] = useState(0);
+
+  return (
+    <motion.section
+      className="ioh-white-section"
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.12 }}
+      variants={{
+        hidden: {},
+        visible: { transition: { staggerChildren: 0.14 } },
+      }}
+    >
+      <div className="ioh-features-wrapper">
+        <motion.div className="ioh-middle-headline" variants={revealVariants}>
+          <h2 className="ioh-h2-sided">What makes our platform different</h2>
+        </motion.div>
+
+        <motion.div className="ioh-flex-slides" variants={revealVariants}>
+          {/* Left: Slider */}
+          <div className="ioh-cms-slider">
+            <div className="ioh-controls">
+              <button
+                className="ioh-arrow"
+                onClick={() => setActive((p) => (p - 1 + features.length) % features.length)}
+                aria-label="Previous"
+              >←</button>
+              <div className="ioh-title-bar-txt">{features[active].tab}</div>
+              <button
+                className="ioh-arrow"
+                onClick={() => setActive((p) => (p + 1) % features.length)}
+                aria-label="Next"
+              >→</button>
+            </div>
+
+            <div className="ioh-slide-content">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={active}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                >
+                  <div className="ioh-mentorship-title">{features[active].title}</div>
+                  <div className="ioh-b-txt">{features[active].body}</div>
+                  <div className="ioh-btn-container">
+                    <Link href="/verify" className="ioh-button-general">
+                      <div className="ioh-g-btn-txt">Explore Platform</div>
+                      <div className="ioh-arrow-btn">→</div>
+                    </Link>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Right: Thumbnail gallery */}
+          <div className="ioh-image-collections">
+            <div className="ioh-thumbnails-list">
+              {features.map((f, i) => (
+                <div
+                  key={f.tab}
+                  className={`ioh-thumbnail-box${i === active ? " is-active" : ""}`}
+                  onClick={() => setActive(i)}
+                >
+                  <div className="ioh-thumb-visual">
+                    <Image src={f.image} alt="" fill sizes="70px" className="ioh-feature-thumb" />
+                    <span className="ioh-thumb-label">{f.tab}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="ioh-main-slide">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={active}
+                  initial={{ opacity: 0, scale: 1.025 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.99 }}
+                  transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                  className="ioh-main-visual"
+                >
+                  <Image
+                    src={features[active].image}
+                    alt={features[active].imageAlt}
+                    fill
+                    sizes="(max-width: 768px) 90vw, 45vw"
+                    className="ioh-feature-photo"
+                  />
+                  <span className="ioh-main-label">{features[active].tab}</span>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </motion.section>
+  );
+}
+
+/* ─── IOH Navbar ─────────────────────────────────────────── */
+function IOHNavbar() {
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", fn);
+    return () => window.removeEventListener("scroll", fn);
+  }, []);
+
+  return (
+    <>
+      <nav className={`ioh-header${scrolled ? " is-dark" : " is-light"}`}>
+        <div className="ioh-header-inner">
+          <div className="ioh-header-flex">
+            <Link href="/" className="ioh-logo">
+              <ShieldCheck size={22} className="ioh-logo-icon" />
+              <span className="ioh-logo-text">PharmaChain</span>
+            </Link>
+
+            <div className="ioh-links-header">
+              <Link href="/verify" className="ioh-h-link"><div>Verify</div></Link>
+              <Link href="/dashboard/batches" className="ioh-h-link"><div>Batches</div></Link>
+              <Link href="/dashboard/transfers/new" className="ioh-h-link"><div>Transfers</div></Link>
+              <Link href="/#how-it-works" className="ioh-h-link"><div>How It Works</div></Link>
+              <Link href="/login" className="ioh-h-link"><div>About</div></Link>
+            </div>
+
+            <div className="ioh-right-side">
+              <div className="ioh-button-box">
+                <Link href="/login" className="ioh-button-contact">
+                  <div className="ioh-arrow-icon">→</div>
+                  <div>Partner Login</div>
+                </Link>
+              </div>
+              <button
+                className="ioh-hamburger-btn"
+                onClick={() => setMobileOpen(!mobileOpen)}
+                aria-label="Toggle menu"
+              >
+                {mobileOpen ? <X size={22} /> : <Menu size={22} />}
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      {mobileOpen && (
+        <div className="ioh-mobile-menu">
+          <div className="ioh-menu-list">
+            {[
+              ["Home", "/"],
+              ["Verify", "/verify"],
+              ["Batches", "/dashboard/batches"],
+              ["Transfers", "/dashboard/transfers/new"],
+              ["How It Works", "/#how-it-works"],
+              ["Partner Login", "/login"],
+            ].map(([label, href]) => (
+              <Link key={label} href={href} className="ioh-menu-link" onClick={() => setMobileOpen(false)}>
+                <div>{label}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ─── Page ───────────────────────────────────────────────── */
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[var(--bg-base)]">
-      <Navbar />
+    <MotionConfig reducedMotion="user">
+    <div className="ioh-page site-grid-surface">
+      <IOHNavbar />
 
-      {/* ── Hero ─────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden pt-32 pb-20 px-4">
-        {/* Background blobs */}
-        <div className="blob w-96 h-96 -top-20 -left-20 bg-teal-400 dark:opacity-10" />
-        <div className="blob w-80 h-80 top-10 right-10 bg-violet-500 dark:opacity-8" style={{ opacity: 0.08 }} />
-
-        {/* Grid pattern */}
-        <div className="absolute inset-0 grid-pattern opacity-50 dark:opacity-20" />
-
-        <div className="relative max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold mb-6 pill pill-accent"
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-500 animate-pulse" />
-            Powered by Ethereum · Sepolia Testnet
-          </motion.div>
-
-          {/* Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl sm:text-6xl md:text-7xl font-display font-bold tracking-tight mb-6"
-          >
-            Know your{" "}
-            <span className="gradient-text">medicine</span>
-            <br />
-            is real.
-          </motion.h1>
-
-          {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-lg sm:text-xl text-[var(--text-secondary)] max-w-2xl mx-auto mb-10 leading-relaxed"
-          >
-            PharmaChain tracks every medicine batch from manufacturer to pharmacy
-            on the blockchain. Scan a QR code to instantly verify authenticity,
-            expiry, and chain of custody.
-          </motion.p>
-
-          {/* CTAs */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row gap-3 justify-center"
-          >
-            <Link
-              href="/verify"
-              id="hero-verify-btn"
-              className="btn btn-primary text-base px-7 py-3.5 text-lg"
-            >
-              <QrCode size={20} />
-              Verify a Medicine
-              <ArrowRight size={18} />
-            </Link>
-            <Link
-              href="/login"
-              id="hero-login-btn"
-              className="btn btn-secondary text-base px-7 py-3.5"
-            >
-              Partner Login
-              <ChevronRight size={16} />
-            </Link>
-          </motion.div>
-
-          {/* Supply chain animation */}
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.5 }}
-            className="mt-16 card p-6 mx-auto max-w-2xl"
-          >
-            <p className="text-xs text-[var(--text-tertiary)] font-semibold uppercase tracking-widest mb-4">
-              Live supply chain tracking
-            </p>
-            <SupplyChainAnimation />
-          </motion.div>
+      {/* Hero */}
+      <section className="ioh-hero">
+        <div className="ioh-wrapper-hero">
+          <div className="ioh-hero-list">
+            <StatBlock target="12400+" label="Batches Tracked" delay={0} />
+            <StatBlock target="980000+" label="Medicines Verified" delay={400} />
+            <StatBlock target="340+" label="Supply Chain Partners" delay={800} />
+          </div>
+          <div className="ioh-hero-bottom">
+            <div className="ioh-left-side-hero">
+              <h1 className="ioh-h1">Global leaders in supply chain transparency</h1>
+              <div className="ioh-paragraph-hero">
+                The only blockchain-based medicine tracker combining immutable ledger technology, real-time analytics, and complete custody verification.
+              </div>
+            </div>
+            <div className="ioh-right-hero">
+              <Link href="/#how-it-works" className="ioh-button-hero">
+                <div className="ioh-text-button"><div>Learn More</div></div>
+                <div className="ioh-arrow-btn-hero">→</div>
+              </Link>
+            </div>
+          </div>
+        </div>
+        <div className="ioh-background-video">
+          <div className="ioh-overlay-video" />
+          <video autoPlay loop muted playsInline className="ioh-video">
+            <source src="/video.mp4" type="video/mp4" />
+          </video>
         </div>
       </section>
 
-      {/* ── Stats strip ───────────────────────────────────────────── */}
-      <section className="py-16 px-4 border-y border-[var(--bg-border)]">
-        <div className="max-w-2xl mx-auto">
-          <StatsStrip stats={stats} />
-        </div>
-      </section>
-
-      {/* ── How it works (bento) ──────────────────────────────────── */}
-      <section className="py-20 px-4 max-w-6xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
-        >
-          <h2 className="text-3xl sm:text-4xl font-display font-bold mb-3">
-            How it works
-          </h2>
-          <p className="text-[var(--text-secondary)] text-lg max-w-xl mx-auto">
-            A simple, transparent system that keeps fake medicines out of the supply chain.
-          </p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {howItWorks.map((item, i) => (
-            <motion.div
-              key={item.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.07, duration: 0.4 }}
-              className={`card p-6 flex flex-col gap-4 ${i === 0 ? "sm:col-span-2 lg:col-span-2" : ""}`}
-            >
-              <div className="w-11 h-11 rounded-xl bg-[var(--bg-lifted)] flex items-center justify-center">
-                {item.icon}
-              </div>
-              <div>
-                <h3 className="text-base font-display font-semibold mb-1.5">{item.title}</h3>
-                <p className="text-sm text-[var(--text-secondary)] leading-relaxed">{item.desc}</p>
-              </div>
+      {/* Courses / Modules */}
+      <section id="how-it-works" className="ioh-courses-section">
+        <div className="ioh-wrapper-slider">
+          <motion.div
+            className="ioh-headline-row"
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.3 }}
+            variants={{
+              hidden: {},
+              visible: { transition: { staggerChildren: 0.12 } },
+            }}
+          >
+            <motion.div className="ioh-headline-box" variants={revealVariants}>
+              <h2 className="ioh-h2-spec">
+                Comprehensive, evidence-based tracking across the full medicine supply chain.
+              </h2>
             </motion.div>
-          ))}
+            <motion.div className="ioh-btn-container" variants={revealVariants}>
+              <Link href="/verify" className="ioh-button-general">
+                <div className="ioh-g-btn-txt">Start Verifying</div>
+                <div className="ioh-arrow-btn">→</div>
+              </Link>
+            </motion.div>
+          </motion.div>
+        </div>
+        <div className="ioh-slider-wrap">
+          <div className="ioh-seminar-header">
+            <div>Modules</div>
+            <div className="ioh-seminar-count">6 Units</div>
+          </div>
+          <ScrollGallery />
         </div>
       </section>
 
-      {/* ── CTA banner ────────────────────────────────────────────── */}
-      <section className="py-20 px-4">
+      {/* Features */}
+      <FeaturesSection />
+
+      {/* CTA */}
+      <section className="ioh-cta-section">
         <motion.div
-          initial={{ opacity: 0, scale: 0.97 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          className="max-w-4xl mx-auto rounded-3xl overflow-hidden relative"
-          style={{
-            background: "linear-gradient(135deg, var(--brand-from), #0D9488, var(--brand-to))",
-          }}
+          className="ioh-cta-box"
+          initial={{ opacity: 0, y: 36, scale: 0.985 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, amount: 0.25 }}
+          transition={{ duration: 0.85, ease: "easeOut" }}
         >
-          <div className="blob w-64 h-64 top-0 right-0 bg-white opacity-10" />
-          <div className="relative p-10 sm:p-16 text-center text-white">
-            <h2 className="text-3xl sm:text-4xl font-display font-bold mb-4">
-              Ready to verify your medicine?
-            </h2>
-            <p className="text-white/80 text-lg mb-8 max-w-xl mx-auto">
-              No account needed. Just scan the QR code on your medicine packaging and get an instant result.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link
-                href="/verify"
-                className="btn text-base px-7 py-3.5 bg-white text-[var(--brand-from)] hover:bg-white/90 font-bold"
-              >
-                <QrCode size={20} />
-                Start Verifying
-              </Link>
-              <Link
-                href="/login"
-                className="btn text-base px-7 py-3.5 bg-white/10 text-white border border-white/20 hover:bg-white/20"
-              >
-                Supply Chain Partners
-              </Link>
-            </div>
+          <h2 className="ioh-cta-title">Ready to verify your medicine?</h2>
+          <p className="ioh-cta-body">
+            No account needed. Just scan the QR code on your medicine packaging and get an instant result.
+          </p>
+          <div className="ioh-cta-buttons">
+            <Link href="/verify" className="ioh-button-general wh">
+              <div className="ioh-g-btn-txt">Start Verifying</div>
+              <div className="ioh-arrow-btn">→</div>
+            </Link>
+            <Link href="/login" className="ioh-button-general outlined">
+              <div className="ioh-g-btn-txt">Supply Chain Partners</div>
+              <div className="ioh-arrow-btn">→</div>
+            </Link>
           </div>
         </motion.div>
       </section>
 
-      {/* ── Footer ────────────────────────────────────────────────── */}
-      <footer className="border-t border-[var(--bg-border)] py-10 px-4">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[var(--brand-from)] to-[var(--brand-to)] flex items-center justify-center">
-              <ShieldCheck size={14} className="text-white" />
-            </div>
-            <span className="font-display font-bold text-sm">PharmaChain</span>
+      {/* Footer */}
+      <footer className="ioh-footer">
+        <div className="ioh-footer-inner">
+          <div className="ioh-footer-logo">
+            <ShieldCheck size={18} className="ioh-footer-icon" />
+            <span className="ioh-footer-brand">PharmaChain</span>
           </div>
-          <p className="text-sm text-[var(--text-tertiary)]">
-            © 2026 PharmaChain. Built on Ethereum Sepolia.
-          </p>
-          <div className="flex items-center gap-4">
-            <Link href="/verify" className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-              Verify
-            </Link>
-            <Link href="/login" className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-              Login
-            </Link>
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-              aria-label="GitHub"
-            >
-              <GitBranch size={16} />
+          <p className="ioh-footer-copy">© 2026 PharmaChain. Built on Ethereum Sepolia.</p>
+          <div className="ioh-footer-links">
+            <Link href="/verify" className="ioh-footer-link">Verify</Link>
+            <Link href="/login" className="ioh-footer-link">Login</Link>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="ioh-footer-link">
+              <GitBranch size={15} />
             </a>
           </div>
         </div>
       </footer>
     </div>
+    </MotionConfig>
   );
 }

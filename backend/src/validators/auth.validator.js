@@ -22,5 +22,23 @@ module.exports = {
       }),
     }),
   },
+  updateProfile: {
+    body: Joi.object({
+      name: Joi.string().trim().min(2).max(100),
+      location: Joi.string().trim().max(200).allow(""),
+      contactPhone: Joi.string().trim().max(30).allow(""),
+    }).min(1),
+  },
+  register: {
+    body: Joi.object({
+      name: Joi.string().trim().max(100).allow("").optional(),
+      email: Joi.string().trim().lowercase().email().required(),
+      password: password.required(),
+      role: Joi.string().valid("participant", "admin").optional(),
+      participantRole: Joi.string().valid("Manufacturer", "Distributor", "Wholesaler", "Pharmacy").optional(),
+      walletAddress: Joi.string().trim().allow("").optional(),
+      location: Joi.string().trim().max(200).allow("").optional(),
+    }),
+  },
   password,
 };

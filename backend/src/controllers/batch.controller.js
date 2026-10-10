@@ -90,6 +90,16 @@ const getOne = asyncHandler(async (req, res) => {
   const batch = await Batch.findOne({ batchId, chainStatus: "confirmed" }).lean();
   if (!batch) throw ApiError.notFound("Batch not found.", "BatchNotFound");
 
+  if (req.user.role !== "admin") {
+    const wallet = req.user.participant.walletAddress;
+    const [hasCustodyRecord] = await Transfer.find({ batchId, $or: [{ from: wallet }, { to: wallet }] }).limit(1).select("_id").lean();
+    const isManufacturer = batch.manufacturer.toLowerCase() === wallet.toLowerCase();
+    const isCurrentHolder = batch.currentHolder?.toLowerCase() === wallet.toLowerCase();
+    if (!isManufacturer && !isCurrentHolder && !hasCustodyRecord) {
+      throw ApiError.forbidden("This batch is not part of your organisation's records.");
+    }
+  }
+
   const [history, transfers, verification, qrCode] = await Promise.all([
     bc.getBatchHistory(batchId),
     Transfer.find({ batchId }).sort({ transferId: 1 }).lean(),

@@ -23,12 +23,8 @@ export default function VerifyPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] flex flex-col">
+    <div className="site-grid-surface min-h-screen flex flex-col">
       <Navbar />
-
-      {/* Background */}
-      <div className="blob w-96 h-96 top-10 left-1/4 bg-teal-400 opacity-8" />
-      <div className="absolute inset-0 grid-pattern opacity-40 dark:opacity-15 pointer-events-none" />
 
       <div className="flex-1 flex flex-col items-center justify-center px-4 pt-20 pb-10">
         <motion.div

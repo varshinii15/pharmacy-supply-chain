@@ -77,6 +77,8 @@ export interface ParticipantInfo {
   role: "Manufacturer" | "Distributor" | "Wholesaler" | "Pharmacy";
   walletAddress: string;
   active: boolean;
+  location?: string;
+  contactPhone?: string;
 }
 
 export interface User {
@@ -231,11 +233,25 @@ export interface CreateParticipantPayload {
   contactPhone?: string;
 }
 
+export interface RegisterPayload {
+  name?: string;
+  email: string;
+  password: string;
+  role?: "participant" | "admin";
+  participantRole?: "Manufacturer" | "Distributor" | "Wholesaler" | "Pharmacy";
+  walletAddress?: string;
+  location?: string;
+}
+
 // ─── Auth ──────────────────────────────────────────────────────────────────
 export const authApi = {
+  register: (data: RegisterPayload) =>
+    api.post<ApiResponse<{ token: string; user: User; message: string }>>("/auth/register", data),
   login: (email: string, password: string) =>
     api.post<ApiResponse<{ token: string; user: User }>>("/auth/login", { email, password }),
   me: () => api.get<ApiResponse<{ user: User }>>("/auth/me"),
+  updateProfile: (data: { name?: string; location?: string; contactPhone?: string }) =>
+    api.patch<ApiResponse<{ user: User }>>("/auth/profile", data),
   changePassword: (currentPassword: string, newPassword: string) =>
     api.post<ApiResponse<{ message: string }>>("/auth/change-password", { currentPassword, newPassword }),
 };
@@ -312,6 +328,8 @@ export const participantApi = {
 
 // ─── Admin ─────────────────────────────────────────────────────────────────
 export const adminApi = {
+  createAdmin: (data: { name: string; email: string; password: string }) =>
+    api.post<ApiResponse<{ user: User }>>("/admin/admins", data),
   stats: () => api.get<ApiResponse<AdminStats>>("/admin/stats"),
   batches: (params?: Record<string, unknown>) =>
     api.get<ApiResponse<PaginatedResult<Batch>>>("/admin/batches", { params }),

@@ -36,13 +36,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] flex flex-col">
+    <div className="site-grid-surface login-grid-surface min-h-screen flex flex-col">
       <Navbar />
-
-      {/* Background blobs */}
-      <div className="blob w-80 h-80 top-20 -left-20 bg-teal-400 opacity-10" />
-      <div className="blob w-64 h-64 bottom-20 right-10 bg-violet-500 opacity-8" />
-      <div className="absolute inset-0 grid-pattern opacity-40 dark:opacity-15" />
 
       <div className="flex-1 flex items-center justify-center px-4 pt-20">
         <motion.div
@@ -151,6 +146,12 @@ export default function LoginPage() {
             Not a partner?{" "}
             <Link href="/verify" className="text-[var(--brand-to)] hover:underline font-medium">
               Verify a medicine instead
+            </Link>
+          </p>
+          <p className="text-center text-sm text-[var(--text-tertiary)] mt-3">
+            Need an account?{" "}
+            <Link href="/accounts/new" className="font-medium text-[var(--text-primary)] hover:underline">
+              Create an account
             </Link>
           </p>
         </motion.div>

@@ -91,6 +91,7 @@ Before step 2, check that the MetaMask account equals `user.participant.walletAd
 
 | Method | Path | Notes |
 |---|---|---|
+| POST | `/admin/admins` | admin | `{ name, email, password }` – creates another administrator login; public admin sign-up is not allowed |
 | GET | `/admin/stats` | totals: batches, participants (by role), transfers (by status), verifications, verified medicines, invalid attempts, chain + sync status |
 | GET | `/admin/batches` | `?search=` |
 | GET | `/admin/transfers` | `?status=Rejected` etc. |
